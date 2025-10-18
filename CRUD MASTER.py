@@ -45,6 +45,8 @@ def pedirSTR(enunciado):
 def inserir(nome,idade,email):
     sql="INSERT INTO tabtreino (nome, idade, email) VALUES (%s, %s, %s)"
     cursor.execute(sql,(nome,idade,email))
+    if cursor.rowcount>0:
+        print(f"{cursor.rowcount} REGISTRO(S) FORAM ALTERADOS")
     conn.commit()
 def listar():
     cursor.execute("SELECT id, nome, idade, email FROM tabtreino")
@@ -63,24 +65,54 @@ def deletar():
                 break
         except ValueError:
             print("APENAS NUMEROS, SÓ ACEITAMOS NUMEROS DE ID")
-    sql="DELETE FROM tabtreino WHERE id = %s"
-    cursor.execute(sql,(QUAL_DELETAR,))
-    verif=cursor.rowcount
-    conn.commit()
-    if verif == 0:
-        print("ESSE ID NAO EXISTE")
+
+    sql1="SELECT * FROM tabtreino WHERE id =%s"
+    cursor.execute(sql1,(QUAL_DELETAR,))
+    EXISTENCIA_EXCLUSAO=cursor.fetchall()
+
+    if not EXISTENCIA_EXCLUSAO :
+        print("ESSE ID NAO EXISTE NO BANCO DE DADOS")
+    else:
+        while True:
+            try:
+                confirmacao=int(input(f"DESEJA REALMENTE DELETAR O ID {QUAL_DELETAR} (1-SIM/2-NAO)"))
+                if confirmacao==1:
+                    sql="DELETE FROM tabtreino WHERE id = %s"
+                    cursor.execute(sql,(QUAL_DELETAR,))
+                    if cursor.rowcount>0:
+                        print(f"{cursor.rowcount} REGISTRO(S) FORAM ALTERADOS")
+                    conn.commit()
+                    break
+                else:
+                    print("ESTE ID NAO FOI DELETADO")
+                    break
+            except:
+                print("APENAS 1 OU 2")
 def atualizar():
     try:
         QUAL_ATUALIZAR=int(input("DIGITE O ID QUE VOCE DESEJA ATUALIZAR"))
     except ValueError:
         print("DIGITE APENAS NUMEROS")
         return
-    nome=pedirSTR("nome")
-    idade=pedirINT("idade")
-    email=pedirSTR("email")
-    sql=("UPDATE tabtreino SET nome=%s, idade=%s, email=%s where id=%s")
-    cursor.execute(sql,(nome,idade,email,QUAL_ATUALIZAR))
-    conn.commit()
+    sql1=("SELECT * FROM tabtreino WHERE id=%s")
+    cursor.execute(sql1,(QUAL_ATUALIZAR,))
+    listar=cursor.fetchall()
+    if listar:
+        nome=pedirSTR("nome")
+        idade=pedirINT("idade")
+        email=pedirSTR("email")
+        sql=("UPDATE tabtreino SET nome=%s, idade=%s, email=%s where id=%s")
+        cursor.execute(sql,(nome,idade,email,QUAL_ATUALIZAR))
+        
+        if cursor.rowcount>0:
+            print(f"{cursor.rowcount} REGISTRO(S) FORAM ALTERADOS \n \n \n")
+
+        conn.commit()
+        cursor.execute(sql1,(QUAL_ATUALIZAR,))
+        listar=cursor.fetchone()
+        print(listar)
+    else:
+        print("ESSE ID NAO EXISTE NO BANCO DE DADOS")
 def pesquisar():
     resultado=[]
     pesquisa=input("DIGITE ALGO REFERENTE A SUA PESQUISA").strip()
@@ -115,6 +147,9 @@ while True:
     elif iniciar==5:
         pesquisar()
     elif iniciar==0:
+        cursor.close()
+        conn.close()
         break
     else:
         print("ALGO INESPERADO DEU ERRADO")
+
